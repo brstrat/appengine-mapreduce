@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from ast import literal_eval
 
 """Defines input readers for MapReduce."""
 
@@ -525,7 +526,7 @@ class AbstractDatastoreInputReader(InputReader):
     if cls.NAMESPACES_PARAM in params:
       raise BadReaderParamsError("Multiple namespaces are no longer supported")
     if cls.FILTERS_PARAM in params:
-      filters = params[cls.FILTERS_PARAM]
+      filters = eval(params[cls.FILTERS_PARAM])
       if not isinstance(filters, list):
         raise BadReaderParamsError("Expected list for filters parameter")
       for f in filters:
@@ -538,7 +539,17 @@ class AbstractDatastoreInputReader(InputReader):
         if f[1] != "=":
           raise BadReaderParamsError(
               "Only equality filters are supported: %s", f)
-
+  @classmethod
+  def clean_filters(cls, filters):
+      if (not filters) or isinstance(filters, (list, tuple)):
+          return filters
+      filters = literal_eval(filters) or []
+      for idx,f in enumerate(filters):
+          if isinstance(f, (list, tuple)):
+              continue
+          filters[idx] = literal_eval(f)
+          
+      return filters
   @classmethod
   def split_input(cls, mapper_spec):
     """Splits query into shards without fetching query results.
@@ -567,7 +578,7 @@ class AbstractDatastoreInputReader(InputReader):
     shard_count = mapper_spec.shard_count
     namespace = params.get(cls.NAMESPACE_PARAM)
     app = params.get(cls._APP_PARAM)
-    filters = params.get(cls.FILTERS_PARAM)
+    filters = cls.clean_filters(params.get(cls.FILTERS_PARAM))
 
     if namespace is None:
       # It is difficult to efficiently shard large numbers of namespaces because
@@ -2048,8 +2059,7 @@ class LogInputReader(InputReader):
   def __str__(self):
     """Returns the string representation of this LogInputReader."""
     params = []
-    for key in sorted(self.__params.keys()):
-      value = self.__params[key]
+    for key, value in self.__params.iteritems():
       if key is self._PROTOTYPE_REQUEST_PARAM:
         params.append("%s='%s'" % (key, value))
       elif key is self._OFFSET_PARAM:

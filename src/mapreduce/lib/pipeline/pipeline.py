@@ -31,7 +31,6 @@ import hashlib
 import itertools
 import logging
 import os
-import pprint
 import re
 import sys
 import threading
@@ -799,7 +798,7 @@ class Pipeline(object):
       raise UnexpectedPipelineError(
           'May only call get_callback_url() method for asynchronous pipelines.')
     kwargs['pipeline_id'] = self._pipeline_key.name()
-    params = urllib.urlencode(sorted(kwargs.items()))
+    params = urllib.urlencode(kwargs)
     return '%s/callback?%s' % (self.base_path, params)
 
   def get_callback_task(self, *args, **kwargs):
@@ -1178,7 +1177,7 @@ class InOrder(object):
 
 def _short_repr(obj):
   """Helper function returns a truncated repr() of an object."""
-  stringified = pprint.saferepr(obj)
+  stringified = repr(obj)
   if len(stringified) > 200:
     return '%s... (%d bytes)' % (stringified[:200], len(stringified))
   return stringified

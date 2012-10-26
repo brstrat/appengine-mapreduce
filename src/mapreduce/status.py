@@ -43,7 +43,14 @@ MR_YAML_NAMES = ["mapreduce.yaml", "mapreduce.yml"]
 class BadStatusParameterError(Exception):
   """A parameter passed to a status handler was invalid."""
 
-
+#SIMPLE CLASS
+class UserParamSelect(validation.Validated):
+  """A user-supplied list of select options"""
+  ATTRIBUTES = {
+      "name":  r"[a-zA-Z0-9_\.]+",
+      "value": validation.Optional(r".*"),
+  }
+  
 class UserParam(validation.Validated):
   """A user-supplied parameter to a mapreduce job."""
 
@@ -51,6 +58,8 @@ class UserParam(validation.Validated):
       "name":  r"[a-zA-Z0-9_\.]+",
       "default": validation.Optional(r".*"),
       "value": validation.Optional(r".*"),
+      "options": validation.Optional(validation.Repeated(UserParamSelect)), #SIMPLE
+
   }
 
 
@@ -92,6 +101,13 @@ class MapReduceYaml(validation.Validated):
           default: bar
         - name: blah
           default: stuff
+         - options: #SIMPLE ADDED
+          - name: Spam
+            value: spam
+          - name: Eggs
+            value: eggs
+          - name: Ham
+            value: ham
       - params_validator: path_to_my.ValidatorFunction
 
   Where
@@ -103,6 +119,7 @@ class MapReduceYaml(validation.Validated):
       InputReader sub-class to use for the mapper job.
     params: A list of optional parameter names and optional default values
       that may be supplied or overridden by the user running the job.
+    options: A list of <select> options for params #SIMPLE
     params_validator is full <module_name>.<function_name/class_name> of
       a callable to validate the mapper_params after they are input by the
       user running the job.
@@ -138,6 +155,9 @@ class MapReduceYaml(validation.Validated):
         param_defaults = {}
         for param in config.mapper.params:
           param_defaults[param.name] = param.default or param.value
+          if param.options:
+              param_defaults[param.name] = [{'name': '', 'value': ''}] + [{'name': opt.name, 'value': opt.value} for opt in param.options]
+        
         out["mapper_params"] = param_defaults
       if config.params:
         param_defaults = {}

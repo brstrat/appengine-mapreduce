@@ -491,14 +491,33 @@ function initJobLaunching(configs) {
           .text(prettyKey)
           .appendTo(paramP);
         $('<span>').text(': ').appendTo(paramP);
-        $('<input type="text">')
-          .attr('id', paramId)
-          .attr('name', prefix + key)
-          .attr('value', value)
-          .appendTo(paramP);
+        //SIMPLE added else
+        if (typeof(value)==='string' || value === null) {
+            // Text input
+            $('<input type="text">')
+              .attr('id', paramId)
+              .attr('name', prefix + key)
+              .attr('value', value)
+              .appendTo(paramP);
+        } else {
+            // Select
+            var paramSelector = $('<select>')
+            .attr('id', paramId)
+            .attr('name', prefix + key)
+            .appendTo(paramP);
+            
+            $.each(value, function(index, value) {
+              $('<option>')
+                .attr('value', value.value)
+                .text(value.name)
+                .appendTo(paramSelector);
+            });
+            
+        }
         paramP.appendTo(jobForm);
       });
     }
+
 
     addParameters(config.params, 'params.');
     addParameters(config.mapper_params, 'mapper_params.');
